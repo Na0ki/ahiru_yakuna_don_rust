@@ -1,0 +1,5 @@
+base = "YOUR_INSTANCE_URL_WITH_HTTPS"
+client_id = ""
+client_secret = ""
+redirect =  ""
+token = "YOUR_TOKEN"

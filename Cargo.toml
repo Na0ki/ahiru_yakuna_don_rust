@@ -1,0 +1,12 @@
+[package]
+name = "yakuna-rust"
+version = "0.1.0"
+authors = ["ahiru"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+elefren = { version = "0.20.1", features = ["toml"] }
+regex = "1.3.4"
+lazy_static = "1.4.0"
