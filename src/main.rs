@@ -3,16 +3,16 @@ extern crate lazy_static;
 extern crate elefren;
 extern crate regex;
 
-use elefren::prelude::*;
-use elefren::helpers::toml;
-use elefren::Mastodon;
 use elefren::entities::event::Event;
-use elefren::entities::status::Status;
 use elefren::entities::notification::NotificationType;
+use elefren::entities::status::Status;
+use elefren::helpers::toml;
+use elefren::prelude::*;
 use elefren::status_builder::StatusBuilder;
-use std::error::Error;
+use elefren::Mastodon;
 use regex::Regex;
 use regex::RegexBuilder;
+use std::error::Error;
 use std::result::Result::Ok;
 
 const YAKI_PATTERN: &str = r"([あアｱ][ひヒﾋ][るルﾙ]|家鴨)[やヤﾔ焼][きキｷ]|ahiruyaki|扒家鸭|3v\.7g";
@@ -26,32 +26,35 @@ fn main() -> Result<(), Box<dyn Error>> {
             // タイムライン更新イベント
             Event::Update(ref status) => {
                 yakuna(&client, status).expect("failed to send response");
-            },
-            // 通知
-            Event::Notification(ref notification) => {
-                match notification.notification_type {
-                    NotificationType::Mention => {
-                        yakuna(&client, &notification.status.clone()?).expect("failed to send response");
-                    },
-                    _ => ()
-                }
             }
-            _ => ()
+            // 通知
+            Event::Notification(ref notification) => match notification.notification_type {
+                NotificationType::Mention => {
+                    yakuna(&client, &notification.status.clone().unwrap())
+                        .expect("failed to send response");
+                }
+                _ => (),
+            },
+            _ => (),
         }
     }
     Ok(())
 }
 
 fn yakuna(client: &Mastodon, ref status: &Status) -> Result<Status, Box<dyn Error>> {
-    if !status.is_burning() {
-        return Result::Err(Box::from("not yaki"));
+    if status.is_burning() {
+        status.reply(client, "焼くな")
+    } else {
+        Result::Err(Box::from("not yaki"))
     }
-    status.reply(client, "焼くな")
 }
 
 fn is_need_burning(text: &str) -> bool {
     lazy_static! {
-        static ref YAKUNA_REGEX: Regex = RegexBuilder::new(YAKI_PATTERN).case_insensitive(true).build().unwrap();
+        static ref YAKUNA_REGEX: Regex = RegexBuilder::new(YAKI_PATTERN)
+            .case_insensitive(true)
+            .build()
+            .unwrap();
         static ref REPLACE_REGEX: Regex = Regex::new(REPLACE_CASE).unwrap();
     }
     let replaced = REPLACE_REGEX.replace_all(text, "");
@@ -108,7 +111,9 @@ mod test {
     fn should_remove_space() {
         let test_cases = "あㅤひる焼き";
 
-        let replaced = Regex::new(REPLACE_CASE).unwrap().replace_all(test_cases, "");
+        let replaced = Regex::new(REPLACE_CASE)
+            .unwrap()
+            .replace_all(test_cases, "");
         assert_eq!(replaced, "あひる焼き")
     }
 
@@ -134,10 +139,7 @@ mod test {
 
     #[test]
     fn should_not_burn() {
-        let test_cases: [&str; 2] = [
-            "ahiru焼き",
-            "焼きあひる",
-        ];
+        let test_cases: [&str; 2] = ["ahiru焼き", "焼きあひる"];
 
         for case in test_cases.iter() {
             assert!(!is_need_burning(case));
